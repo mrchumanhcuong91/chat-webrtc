@@ -1,28 +1,9 @@
 //create sever relay signal to each other
 //request websocket lib
-var WebSocketServer = require('websocket').server;
+var WebSocket = require('ws');
 
 //create ws object
-var http = require('http');
-
-var server = http.createServer(function(request, response) {
-    console.log((new Date()) + ' Received request for ' + request.url);
-    response.writeHead(404);
-    response.end();
-});
-server.listen(9090, function() {
-    console.log((new Date()) + ' Server is listening on port 9090');
-});
-
-var wss = new WebSocketServer({
-    httpServer: server,
-    autoAcceptConnections: false
-});
-
-function originIsAllowed(origin) {
-  // put logic here to detect whether the specified origin is allowed.
-  return true;
-}
+var wss = new WebSocket.Server({port:9090});
 //list user in room
 var users = {};
 //now server listen connection
