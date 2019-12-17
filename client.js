@@ -14,10 +14,10 @@ ws.onopen = function(){
 }
 //when got a message from server
 ws.onmessage = function(msg){
-    console.log("Receive new message !!! "+ msg);
 
     //parse
     var data = JSON.parse(msg.data);
+    console.log("Receive new message !!! "+ data.type + "; ");
 
     switch (data.type){
         case "login":
@@ -25,7 +25,8 @@ ws.onmessage = function(msg){
             break;
 
         case "offer":
-            handleOffer(msg);
+            console.log("data offer : "+ data.offer);
+            handleOffer(data.offer, data.name);
             break;
 
         case "answer":
@@ -56,10 +57,12 @@ var usernameInput = document.querySelector('#usernameInput');
 var loginBtn = document.querySelector('#loginBtn');
 var chatArea = document.querySelector('#chatarea');
 var sendBtn = document.querySelector('#sendMsgBtn');
+var msgInput = document.querySelector('#msgInput');
 var callPage = document.querySelector('#callPage');
 var loginPage = document.querySelector('#loginPage');
 loginBtn.addEventListener("click",function(event){
         var text = usernameInput.value;
+        userConnected = text;
         console.log("text :" +text);
         var data = {type: "login",
                     name: text};
@@ -82,6 +85,13 @@ function handleLogin(success){
         };
         //create rtc object
         yourConn = new webkitRTCPeerConnection(configuration,{optional: [{RtpDataChannels: true}]});
+        //onicecandidate
+        yourConn.onicecandidate = function(event){
+            if(event.candidate){
+                send({type: "candidate",
+                    candidate: event.candidate});
+            }
+        };
         //create data channel
         dataChannel = yourConn.createDataChannel("channel1",{reliable: true});
         dataChannel.onerror = function(error){
@@ -89,23 +99,35 @@ function handleLogin(success){
         };
         //onmessage when receive message on channel
         dataChannel.onmessage = function(event){
-
+            var content = JSON.parse(event);
+            var name = content.name;
+            var message = content.message;
+            chatArea.innerHtml += name + ": " + message +"<br>";
+        }
+        dataChannel.onclose = function(){
+            console.log("Onclose session !!!");
         }
     }else
         alert("Login failed. Pls try again !!!")
 }
+//handle offer function
+function handleOffer(offer, name){
+    userConnected = name;
+    yourConn.setRemoteDescription(new RTCSessionDescription(offer));
+    yourConn.createAnswer(function(answer){
+        yourConn.setLocalDescription(answer);
+        send({type: "answer",
+            answer: answer});
+    },function(error){
+        alert("send answer error" + error);
+    });
+};
+//send message
+sendBtn.addEventListener("click", function(){
+    var contentChat = msgInput.value;
+    dataChannel.send({
+        name: userConnected,
+        message: contentChat
+    });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+});
